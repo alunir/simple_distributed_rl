@@ -21,7 +21,7 @@ class PrintWandB(PrintProgress):
         self,
         wandb_key: str = "",
         wandb_project: str = "",
-        wandb_name: str = "",
+        wandb_name: str | None = None,
         save_code: bool = True,
         alert: CallbackAlertWandB | None = None,
         **kwargs,
@@ -29,7 +29,6 @@ class PrintWandB(PrintProgress):
         super().__init__(**kwargs)
         assert wandb_key != "", "Wandb key is required."
         assert wandb_project != "", "Wandb project name is required."
-        assert wandb_name != "", "Wandb name is required."
 
         wandb.login(key=wandb_key)
 

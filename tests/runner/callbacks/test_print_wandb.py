@@ -23,7 +23,7 @@ def test_pickle():
     callback = PrintWandB(
         wandb_key=wandb_key,
         wandb_project=wandb_project,
-        wandb_name=wandb_name,
+        wandb_name=None,
         alert=MyCallbackAlertWandB(),
     )
 
