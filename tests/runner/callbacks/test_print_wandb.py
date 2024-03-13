@@ -4,7 +4,7 @@ import srl
 from srl.algorithms import ql
 from srl.base.run.context import RunContext
 from srl.base.run.core_train_only import RunStateTrainer
-from srl.runner.callbacks.print_wandb import CallbackAlertWandB, PrintWandB
+from srl.runner.callbacks.print.print_wandb import CallbackAlertWandB, PrintWandB
 
 wandb_key = ""  # your wandb api key
 wandb_project = ""  # your wandb project
