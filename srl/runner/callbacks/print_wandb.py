@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 import wandb
-from srl.base.rl.base import RLParameter
 from srl.base.run.context import RunContext
+from srl.base.run.core_play import RunStateActor
 from srl.base.run.core_train_only import RunStateTrainer
 from srl.runner.callbacks.print_progress import PrintProgress
 
@@ -44,11 +44,20 @@ class PrintWandB(PrintProgress):
         super().on_trainer_start(context, state)
         self._wandb.config.update(state.parameter.config.to_dict())
 
-    def _eval_str(self, context: RunContext, parameter: RLParameter) -> str:
-        eval_rewards = self.run_eval(parameter)
-        if eval_rewards is not None:
-            self._wandb.log({"eval_reward": eval_rewards[self.progress_worker]})
-        return ""
+    def on_episode_end(self, context: RunContext, state: RunStateActor):
+        if context.actor_id >= self.progress_max_actor:
+            return
+
+        # print_workerの報酬を記録する
+        player_idx = state.worker_indices[self.progress_worker]
+        episode_reward = state.env.episode_rewards[player_idx]
+
+        d = {
+            "episode_step": state.env.step_num,
+            "episode_reward": episode_reward,
+        }
+        self.progress_history.append(d)
+        self._wandb.log(d)
 
     def on_trainer_end(self, context: RunContext, state: RunStateTrainer) -> None:
         super().on_trainer_end(context, state)
