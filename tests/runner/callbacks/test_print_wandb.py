@@ -2,9 +2,8 @@ import pickle
 
 import srl
 from srl.algorithms import ql
-from srl.base.run.context import RunContext
-from srl.base.run.core_train_only import RunStateTrainer
 from srl.runner.callbacks.print.print_wandb import CallbackAlertWandB, PrintWandB
+from srl.runner.runner import Runner
 
 wandb_key = ""  # your wandb api key
 wandb_project = ""  # your wandb project
@@ -12,11 +11,12 @@ wandb_name = ""  # your wandb experiment name
 
 
 class MyCallbackAlertWandB(CallbackAlertWandB):
-    def title(self, context: RunContext, state: RunStateTrainer) -> str:
-        return f"WandB Notification [{context.env_config.name}]"
+    def title(self, runner: Runner) -> str:
+        return f"WandB Notification [{runner.env_config.name}]"
 
-    def text(self, context: RunContext, state: RunStateTrainer) -> str:
-        return f"Training is finished.\n{state.trainer.train_info}"
+    def text(self, runner: Runner) -> str:
+        metrics = runner.trainer.train_info if runner.trainer else {}
+        return "Training is finished.\n" + "\n".join([f"{k}: {v}" for k, v in metrics.items()])
 
 
 def test_pickle():

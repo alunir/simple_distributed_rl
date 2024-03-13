@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from srl.base.define import InfoType
 from srl.base.rl.base import RLParameter
 from srl.base.run.callback import RunCallback, TrainerCallback
 from srl.base.run.context import RunContext
@@ -14,7 +15,7 @@ from srl.base.run.core_train_only import RunStateTrainer
 from srl.runner.callback import RunnerCallback
 from srl.runner.callbacks.evaluate import Evaluate
 from srl.runner.runner import Runner
-from srl.utils.util_str import to_str_info, to_str_reward, to_str_time
+from srl.utils.util_str import to_str_reward, to_str_time
 
 logger = logging.getLogger(__name__)
 
@@ -146,12 +147,12 @@ class PrintBase(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
 
     # -----------------------------------------
 
-    def _print_actor(self, context: RunContext, state: RunStateActor) -> dict[str, str | float]:
+    def _print_actor(self, context: RunContext, state: RunStateActor) -> InfoType:
         _time = time.time()
         elapsed_time = _time - state.elapsed_t0
 
         # [TIME] [actor] [elapsed time]
-        s: dict[str, str | float] = {
+        s: InfoType = {
             "time": datetime.datetime.now().strftime("%H:%M:%S"),
         }
         if context.distributed:
@@ -256,56 +257,58 @@ class PrintBase(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
             # s += self._eval_str(context, state.parameter)
 
         # [system]
-        # s += self._stats_str()
+        s |= self._stats_str()
 
         # [info] , 速度優先して一番最新の状態をそのまま表示
-        # s_info = ""
-        # env_types = state.env.info_types
-        # rl_types = context.rl_config.info_types
-        # if self.progress_env_info:
-        #     s_info += to_str_info(state.env.info, env_types)
-        # if self.progress_worker_info:
-        #     s_info += to_str_info(state.workers[self.progress_worker].info, rl_types)
-        # if self.progress_train_info:
-        #     if state.trainer is not None:
-        #         s_info += to_str_info(state.trainer.train_info, rl_types)
+        if self.progress_env_info:
+            info = state.env.info
+            s |= info
+        if self.progress_worker_info:
+            info = state.workers[self.progress_worker].info
+            if info is not None:
+                s |= info
+        if self.progress_train_info:
+            if state.trainer is not None:
+                info = state.trainer.train_info
+                s |= info
 
         self.progress_history = []
 
         return s
 
-    def _stats_str(self) -> str:
+    def _stats_str(self) -> InfoType:
         if self.runner is None:
-            return ""
+            return {}
         if not self.runner.config.enable_stats:
-            return ""
+            return {}
 
         # ,CPU100% M100%,GPU0 100% M100%
-        s = ""
+        s = {}
         if self.runner.context.actor_id == 0:
             try:
                 memory_percent, cpu_percent = self.runner.read_psutil()
                 if memory_percent != np.NaN:
-                    s += f"[CPU{cpu_percent:3.0f}%,M{memory_percent:2.0f}%]"
+                    s["CPU"] = cpu_percent
+                    s["MEM"] = memory_percent
             except Exception:
                 logger.debug(traceback.format_exc())
-                s += "[CPU Nan%]"
+                s["CPU"] = np.NaN
 
             try:
                 gpus = self.runner.read_nvml()
                 # device_id, rate.gpu, rate.memory
-                s += "".join([f"[GPU{g[0]} {g[1]:2.0f}%,M{g[2]:2.0f}%]" for g in gpus])
+                s["GPU"] = "".join([f"[GPU{g[0]} {g[1]:2.0f}%,M{g[2]:2.0f}%]" for g in gpus])
             except Exception:
                 logger.debug(traceback.format_exc())
-                s += ",GPU Nan%"
+                s["GPU"] += np.NaN
         else:
             try:
                 memory_percent, cpu_percent = self.runner.read_psutil()
                 if memory_percent != np.NaN:
-                    s += f"[CPU{cpu_percent:3.0f}%]"
+                    s["CPU"] = cpu_percent
             except Exception:
                 logger.debug(traceback.format_exc())
-                s += "[CPU Nan%]"
+                s["CPU"] = np.NaN
         return s
 
     # ----------------------------------

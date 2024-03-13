@@ -123,7 +123,18 @@ class PrintProgress(PrintBase):
             s += self._eval_str(context, state.parameter)
 
         # [system]
-        s += self._stats_str()
+        if context.actor_id == 0:
+            if "MEM" in d:
+                s += "[CPU{0:3.0f}%,M{1:2.0f}%]".format(d["CPU"], d["MEM"])
+            else:
+                s += "[CPU Nan%]"
+
+            if "GPU" in d:
+                s += str(d["GPU"])
+            else:
+                s += "[GPU Nan%]"
+        else:
+            s += "[CPU{:3.0f}%]".format(d["CPU"])
 
         # [info] , 速度優先して一番最新の状態をそのまま表示
         s_info = ""
@@ -188,7 +199,18 @@ class PrintProgress(PrintBase):
             s += self._eval_str(context, state.parameter)
 
         # [system]
-        s += self._stats_str()
+        if context.actor_id == 0:
+            if "MEM" in d:
+                s += "[CPU{0:3.0f}%,M{1:2.0f}%]".format(d["CPU"], d["MEM"])
+            else:
+                s += "[CPU Nan%]"
+
+            if d["GPU"] != np.NaN:
+                s += str(d["GPU"])
+            else:
+                s += "[GPU Nan%]"
+        else:
+            s += "[CPU{:3.0f}%]".format(d["CPU"])
 
         # [info] , 速度優先して一番最新の状態をそのまま表示
         s_info = ""

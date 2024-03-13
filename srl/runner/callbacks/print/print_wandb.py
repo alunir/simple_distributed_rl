@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class CallbackAlertWandB:
-    def title(self, context: RunContext, state: RunStateTrainer) -> str:
+    def title(self, runner: Runner) -> str:
         raise NotImplementedError
 
-    def text(self, context: RunContext, state: RunStateTrainer) -> str:
+    def text(self, runner: Runner) -> str:
         raise NotImplementedError
 
 
@@ -33,6 +33,7 @@ class PrintWandB(PrintBase):
         super().__init__(**kwargs)
         assert wandb_key != "", "Wandb key is required."
         assert wandb_project != "", "Wandb project name is required."
+        assert alert is not None, "Wandb alert is required."
 
         wandb.login(key=wandb_key)
 
@@ -73,10 +74,13 @@ class PrintWandB(PrintBase):
             artifact.add(state.parameter.config.memory_path)
             self._wandb.log_artifact(artifact)
 
+    def on_runner_end(self, runner: Runner) -> None:
+        super().on_runner_end(runner)
+
         if self._alert:
             self._wandb.alert(
-                self._alert.title(context, state),
-                self._alert.text(context, state),
+                title=self._alert.title(runner),
+                text=self._alert.text(runner),
             )
 
         self._wandb.finish()
@@ -85,8 +89,8 @@ class PrintWandB(PrintBase):
 
     def _print_actor(self, context: RunContext, state: RunStateActor):
         d = super()._print_actor(context, state)
-        self._wandb.log(d)
+        self._wandb.log(dict(d))
 
     def _print_trainer(self, context: RunContext, state: RunStateTrainer):
         d = super()._print_trainer(context, state)
-        self._wandb.log(d)
+        self._wandb.log(dict(d))
