@@ -2,7 +2,7 @@ import pickle
 
 import srl
 from srl.algorithms import ql, ql_agent57
-from srl.runner.callbacks.print_progress import PrintProgress
+from srl.runner.callbacks.print.print_progress import PrintProgress
 
 
 def test_pickle():

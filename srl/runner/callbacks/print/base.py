@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
+class PrintBase(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
     """時間に対して少しずつ長く表示、学習し始めたら長くしていく"""
 
     # mode: str = "simple"
@@ -77,19 +77,22 @@ class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
             else:
                 return f"({to_str_reward(eval_rewards[self.progress_worker])}eval)"
 
-    def on_runner_start(self, runner: Runner) -> None:
-        s = f"### env: {runner.env_config.name}, rl: {runner.rl_config.getName()}"
+    def on_runner_start(self, runner: Runner) -> dict[str, int | str]:
+        d: dict[str, int | str] = {
+            "env": runner.env_config.name,
+            "rl": runner.rl_config.getName(),
+        }
         if runner.context.max_episodes > 0:
-            s += f", max episodes: {runner.context.max_episodes}"
+            d["max_episodes"] = runner.context.max_episodes
         if runner.context.timeout > 0:
-            s += f", timeout: {to_str_time(runner.context.timeout)}"
+            d["timeout"] = to_str_time(runner.context.timeout)
         if runner.context.max_steps > 0:
-            s += f", max steps: {runner.context.max_steps}"
+            d["max_steps"] = runner.context.max_steps
         if runner.context.max_train_count > 0:
-            s += f", max train: {runner.context.max_train_count}"
+            d["max_train_count"] = runner.context.max_train_count
         if runner.context.max_memory > 0:
-            s += f", max memory: {runner.context.max_memory}"
-        print(s)
+            d["max_memory"] = runner.context.max_memory
+        return d
 
     # -----------------------------------------------------
     # actor
@@ -143,15 +146,17 @@ class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
 
     # -----------------------------------------
 
-    def _print_actor(self, context: RunContext, state: RunStateActor):
+    def _print_actor(self, context: RunContext, state: RunStateActor) -> dict[str, str | float]:
         _time = time.time()
         elapsed_time = _time - state.elapsed_t0
 
         # [TIME] [actor] [elapsed time]
-        s = datetime.datetime.now().strftime("%H:%M:%S")
+        s: dict[str, str | float] = {
+            "time": datetime.datetime.now().strftime("%H:%M:%S"),
+        }
         if context.distributed:
-            s += f" actor{context.actor_id:2d}:"
-        s += f" {to_str_time(elapsed_time)}"
+            s["actor"] = f"{context.actor_id:2d}"
+        s["elapsed_time"] = elapsed_time
 
         # calc time
         diff_time = _time - self.t0_print_time
@@ -197,89 +202,77 @@ class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
                 remain_memory = (context.max_memory - state.memory.length()) * memory_time
         remain = min(min(min(remain_step, remain_episode), remain_time), remain_train)
         remain = min(remain, remain_memory)
-        if remain == np.inf:
-            s += "(     - left)"
-        else:
-            s += f"({to_str_time(remain)} left)"
+
+        s["remain"] = remain
 
         # [step time]
-        _c = diff_step / diff_time
-        if _c < 10:
-            s += f",{_c:6.2f}st/s"
-        else:
-            s += f",{int(_c):6d}st/s"
+        s["_c"] = diff_step / diff_time
 
         # [all step]
-        s += f",{state.total_step:7d}st"
+        s["all_step"] = state.total_step
 
         # [memory]
         if state.memory is not None:
-            s += f",{state.memory.length():6d}mem"
+            s["memory"] = state.memory.length()
 
         # [sync]
         if context.distributed:
             diff_q = state.actor_send_q - self.t0_actor_send_q
-            s += f", Q {int(diff_q/diff_time):4d}send/s({state.actor_send_q:8d})"
+            s["Q"] = int(diff_q / diff_time)
+            s["actor_send_q"] = state.actor_send_q
             self.t0_actor_send_q = state.actor_send_q
-            s += f", {state.sync_actor:4d} recv Param"
+            s["sync_actor"] = state.sync_actor
 
         # [all episode] [train]
-        s += f", {state.episode_count:3d}ep"
+        s["episode_count"] = state.episode_count
         if state.trainer is not None:
-            s += ", {:5d}tr".format(state.trainer.get_train_count())
+            s["tr"] = state.trainer.get_train_count()
 
+        s["diff_episode"] = diff_episode
+        s["diff_step"] = diff_step
         if diff_episode <= 0:
-            if diff_step <= 0:
-                # --- no info
-                s += "1 step is not over."
-            else:
+            if diff_step > 0:
                 # --- steps info
                 # [episode step]
-                s += f", {state.env.step_num}st"
+                s["step_num"] = state.env.step_num
 
                 # [reward]
                 r_list = [to_str_reward(r) for r in state.env.episode_rewards]
-                s += " [" + ",".join(r_list) + "]reward"
+                s["reward"] = ",".join(r_list)
 
         else:
             # --- episode info
             # [mean episode step]
             _s = [h["episode_step"] for h in self.progress_history]
-            s += f", {int(np.mean(_s)):3d}st"
+            s["mean_episode_step"] = int(np.mean(_s))
 
             # [reward]
             _r = [h["episode_reward"] for h in self.progress_history]
-            _r_min = to_str_reward(min(_r))
-            _r_mid = to_str_reward(float(np.mean(_r)), check_skip=True)
-            _r_max = to_str_reward(max(_r))
-            s += f",{_r_min} {_r_mid} {_r_max} re"
+            s["reward_min"] = min(_r)
+            s["reward_mid"] = np.mean(_r)
+            s["reward_max"] = max(_r)
 
             # [eval reward]
-            s += self._eval_str(context, state.parameter)
+            # s += self._eval_str(context, state.parameter)
 
         # [system]
-        s += self._stats_str()
+        # s += self._stats_str()
 
         # [info] , 速度優先して一番最新の状態をそのまま表示
-        s_info = ""
-        env_types = state.env.info_types
-        rl_types = context.rl_config.info_types
-        if self.progress_env_info:
-            s_info += to_str_info(state.env.info, env_types)
-        if self.progress_worker_info:
-            s_info += to_str_info(state.workers[self.progress_worker].info, rl_types)
-        if self.progress_train_info:
-            if state.trainer is not None:
-                s_info += to_str_info(state.trainer.train_info, rl_types)
+        # s_info = ""
+        # env_types = state.env.info_types
+        # rl_types = context.rl_config.info_types
+        # if self.progress_env_info:
+        #     s_info += to_str_info(state.env.info, env_types)
+        # if self.progress_worker_info:
+        #     s_info += to_str_info(state.workers[self.progress_worker].info, rl_types)
+        # if self.progress_train_info:
+        #     if state.trainer is not None:
+        #         s_info += to_str_info(state.trainer.train_info, rl_types)
 
-        if self.single_line:
-            print(s + s_info)
-        elif s_info == "":
-            print(s)
-        else:
-            print(s)
-            print("  " + s_info)
         self.progress_history = []
+
+        return s
 
     def _stats_str(self) -> str:
         if self.runner is None:
@@ -342,16 +335,16 @@ class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
             self._update_progress()
             self.progress_t0 = time.time()  # last
 
-    def _print_trainer(self, context: RunContext, state: RunStateTrainer):
+    def _print_trainer(self, context: RunContext, state: RunStateTrainer) -> dict[str, str | float]:
         _time = time.time()
         elapsed_time = _time - state.elapsed_t0
 
         # --- head
         # [TIME] [trainer] [elapsed time]
-        s = datetime.datetime.now().strftime("%H:%M:%S")
-        if context.distributed:
-            s += " trainer:"
-        s += f" {to_str_time(elapsed_time)}"
+        s: dict[str, str | float] = {
+            "time": datetime.datetime.now().strftime("%H:%M:%S"),
+        }
+        s["elapsed_time"] = elapsed_time
 
         # calc time
         diff_time = _time - self.t0_train_time
@@ -373,53 +366,27 @@ class PrintProgress(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
         else:
             remain_time = np.inf
         remain = min(remain_train, remain_time)
-        if remain == np.inf:
-            s += "(     - left)"
-        else:
-            s += f"({to_str_time(remain)} left)"
+
+        s["remain"] = remain
 
         # [train time]
-        _c = diff_train_count / diff_time
-        if _c < 10:
-            s += f",{_c:6.2f}tr/s"
-        else:
-            s += f",{int(_c):6d}tr/s"
+        s["_c"] = diff_train_count / diff_time
 
         # [train count]
-        s += ",{:7d}tr".format(train_count)
+        s["train_count"] = train_count
 
         # [memory]
         if state.memory is not None:
-            s += f",{state.memory.length():6d}mem"
+            s["memory"] = state.memory.length()
 
         # [distributed]
         if context.distributed:
             diff_q = state.trainer_recv_q - self.t0_trainer_recv_q
-            s += f", Q {int(diff_q/diff_time):4d}recv/s({state.trainer_recv_q:8d})"
+            s["Q"] = int(diff_q / diff_time)
+            s["trainer_recv_q"] = state.trainer_recv_q
             self.t0_trainer_recv_q = state.trainer_recv_q
-            s += f", {state.sync_trainer:4d} send Param"
+            s["sync_trainer"] = state.sync_trainer
 
-        if train_count == 0:
-            # no info
-            s += " 1train is not over."
-        else:
-            # [eval]
-            s += self._eval_str(context, state.parameter)
-
-        # [system]
-        s += self._stats_str()
-
-        # [info] , 速度優先して一番最新の状態をそのまま表示
-        s_info = ""
-        if self.progress_train_info:
-            if state.trainer is not None:
-                s_info += to_str_info(state.trainer.train_info, context.rl_config.info_types)
-
-        if self.single_line:
-            print(s + s_info)
-        elif s_info == "":
-            print(s)
-        else:
-            print(s)
-            print("  " + s_info)
         self.progress_history = []
+
+        return s

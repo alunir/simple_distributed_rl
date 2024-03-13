@@ -1,10 +1,14 @@
+import logging
 from dataclasses import dataclass
 
 import wandb
 from srl.base.run.context import RunContext
 from srl.base.run.core_play import RunStateActor
 from srl.base.run.core_train_only import RunStateTrainer
-from srl.runner.callbacks.print_progress import PrintProgress
+from srl.runner.callbacks.print.base import PrintBase
+from srl.runner.runner import Runner
+
+logger = logging.getLogger(__name__)
 
 
 class CallbackAlertWandB:
@@ -16,7 +20,7 @@ class CallbackAlertWandB:
 
 
 @dataclass
-class PrintWandB(PrintProgress):
+class PrintWandB(PrintBase):
     def __init__(
         self,
         wandb_key: str = "",
@@ -44,19 +48,8 @@ class PrintWandB(PrintProgress):
         super().on_trainer_start(context, state)
         self._wandb.config.update(state.parameter.config.to_dict())
 
-    def on_episode_end(self, context: RunContext, state: RunStateActor):
-        if context.actor_id >= self.progress_max_actor:
-            return
-
-        # print_workerの報酬を記録する
-        player_idx = state.worker_indices[self.progress_worker]
-        episode_reward = state.env.episode_rewards[player_idx]
-
-        d = {
-            "episode_step": state.env.step_num,
-            "episode_reward": episode_reward,
-        }
-        self.progress_history.append(d)
+    def on_runner_start(self, runner: Runner) -> None:
+        d = super().on_runner_start(runner)
         self._wandb.log(d)
 
     def on_trainer_end(self, context: RunContext, state: RunStateTrainer) -> None:
@@ -87,3 +80,13 @@ class PrintWandB(PrintProgress):
             )
 
         self._wandb.finish()
+
+    # -----------------------------------------
+
+    def _print_actor(self, context: RunContext, state: RunStateActor):
+        d = super()._print_actor(context, state)
+        self._wandb.log(d)
+
+    def _print_trainer(self, context: RunContext, state: RunStateTrainer):
+        d = super()._print_trainer(context, state)
+        self._wandb.log(d)

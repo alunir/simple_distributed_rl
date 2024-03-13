@@ -77,7 +77,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -149,7 +149,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -219,7 +219,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -300,7 +300,7 @@ class RunnerFacade(Runner):
         self.context.render_mode = RenderModes.none
 
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -499,7 +499,7 @@ class RunnerFacade(Runner):
 
         # --- remote progress ---
         if True:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks_run.append(
                 PrintProgress(
@@ -597,7 +597,7 @@ class RunnerFacade(Runner):
 
         # --- remote progress ---
         if True:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -671,7 +671,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(PrintProgress(enable_eval=False, **self._progress_kwargs))
             logger.info("add callback PrintProgress")
@@ -826,7 +826,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -918,7 +918,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -1012,7 +1012,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
@@ -1081,7 +1081,7 @@ class RunnerFacade(Runner):
 
         # --- progress ---
         if enable_progress:
-            from srl.runner.callbacks.print_progress import PrintProgress
+            from srl.runner.callbacks.print.print_progress import PrintProgress
 
             callbacks.append(
                 PrintProgress(
