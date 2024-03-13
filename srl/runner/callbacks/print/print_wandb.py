@@ -51,7 +51,7 @@ class PrintWandB(PrintBase):
 
     def on_runner_start(self, runner: Runner) -> None:
         d = super().on_runner_start(runner)
-        self._wandb.log(d)
+        self._wandb.log(dict(d))
 
     def on_trainer_end(self, context: RunContext, state: RunStateTrainer) -> None:
         super().on_trainer_end(context, state)

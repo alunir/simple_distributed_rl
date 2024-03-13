@@ -15,7 +15,7 @@ from srl.base.run.core_train_only import RunStateTrainer
 from srl.runner.callback import RunnerCallback
 from srl.runner.callbacks.evaluate import Evaluate
 from srl.runner.runner import Runner
-from srl.utils.util_str import to_str_reward, to_str_time
+from srl.utils.util_str import to_str_reward
 
 logger = logging.getLogger(__name__)
 
@@ -78,15 +78,15 @@ class PrintBase(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
             else:
                 return f"({to_str_reward(eval_rewards[self.progress_worker])}eval)"
 
-    def on_runner_start(self, runner: Runner) -> dict[str, int | str]:
-        d: dict[str, int | str] = {
+    def on_runner_start(self, runner: Runner) -> InfoType:
+        d: InfoType = {
             "env": runner.env_config.name,
             "rl": runner.rl_config.getName(),
         }
         if runner.context.max_episodes > 0:
             d["max_episodes"] = runner.context.max_episodes
         if runner.context.timeout > 0:
-            d["timeout"] = to_str_time(runner.context.timeout)
+            d["timeout"] = float(runner.context.timeout)
         if runner.context.max_steps > 0:
             d["max_steps"] = runner.context.max_steps
         if runner.context.max_train_count > 0:
@@ -338,13 +338,13 @@ class PrintBase(RunnerCallback, RunCallback, TrainerCallback, Evaluate):
             self._update_progress()
             self.progress_t0 = time.time()  # last
 
-    def _print_trainer(self, context: RunContext, state: RunStateTrainer) -> dict[str, str | float]:
+    def _print_trainer(self, context: RunContext, state: RunStateTrainer) -> InfoType:
         _time = time.time()
         elapsed_time = _time - state.elapsed_t0
 
         # --- head
         # [TIME] [trainer] [elapsed time]
-        s: dict[str, str | float] = {
+        s: InfoType = {
             "time": datetime.datetime.now().strftime("%H:%M:%S"),
         }
         s["elapsed_time"] = elapsed_time
