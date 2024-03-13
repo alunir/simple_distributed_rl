@@ -37,21 +37,23 @@ class PrintWandB(PrintBase):
 
         wandb.login(key=wandb_key)
 
-        self._wandb = wandb.init(
-            project=wandb_project,
-            name=wandb_name,
-            save_code=save_code,
-        )
-
+        self._wandb_project = wandb_project
+        self._wandb_name = wandb_name
+        self._save_code = save_code
         self._alert = alert
+
+    def on_runner_start(self, runner: Runner) -> None:
+        self._wandb = wandb.init(
+            project=self._wandb_project,
+            name=self._wandb_name,
+            save_code=self._save_code,
+        )
+        d = super().on_runner_start(runner)
+        self._wandb.log(dict(d))
 
     def on_trainer_start(self, context: RunContext, state: RunStateTrainer) -> None:
         super().on_trainer_start(context, state)
         self._wandb.config.update(state.parameter.config.to_dict())
-
-    def on_runner_start(self, runner: Runner) -> None:
-        d = super().on_runner_start(runner)
-        self._wandb.log(dict(d))
 
     def on_trainer_end(self, context: RunContext, state: RunStateTrainer) -> None:
         super().on_trainer_end(context, state)
