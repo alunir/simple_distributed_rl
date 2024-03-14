@@ -63,7 +63,7 @@ class PrintWandB(PrintBase):
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("model", type="model")
-            artifact.add(runner.rl_config.parameter_path, name="parameters.dat")
+            artifact.add_file(runner.rl_config.parameter_path)
             self._wandb.log_artifact(artifact)
 
         if runner.rl_config.memory_path != "":
@@ -72,7 +72,7 @@ class PrintWandB(PrintBase):
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("memory", type="memory")
-            artifact.add(runner.rl_config.memory_path, name="memory.dat")
+            artifact.add_file(runner.rl_config.memory_path)
             self._wandb.log_artifact(artifact)
 
         if self._alert:
