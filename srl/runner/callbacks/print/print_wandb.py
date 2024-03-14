@@ -33,7 +33,6 @@ class PrintWandB(PrintBase):
         super().__init__(**kwargs)
         assert wandb_key != "", "Wandb key is required."
         assert wandb_project != "", "Wandb project name is required."
-        assert alert is not None, "Wandb alert is required."
 
         wandb.login(key=wandb_key)
 
@@ -64,7 +63,7 @@ class PrintWandB(PrintBase):
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("model", type="model")
-            artifact.add(runner.rl_config.parameter_path)
+            artifact.add(runner.rl_config.parameter_path, name="parameters.dat")
             self._wandb.log_artifact(artifact)
 
         if runner.rl_config.memory_path != "":
@@ -73,7 +72,7 @@ class PrintWandB(PrintBase):
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("memory", type="memory")
-            artifact.add(runner.rl_config.memory_path)
+            artifact.add(runner.rl_config.memory_path, name="memory.dat")
             self._wandb.log_artifact(artifact)
 
         if self._alert:
