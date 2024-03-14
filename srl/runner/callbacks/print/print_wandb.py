@@ -55,29 +55,26 @@ class PrintWandB(PrintBase):
         super().on_trainer_start(context, state)
         self._wandb.config.update(state.parameter.config.to_dict())
 
-    def on_trainer_end(self, context: RunContext, state: RunStateTrainer) -> None:
-        super().on_trainer_end(context, state)
+    def on_runner_end(self, runner: Runner) -> None:
+        super().on_runner_end(runner)
 
-        if state.parameter.config.parameter_path != "":
+        if runner.rl_config.parameter_path != "":
             # パラメータを保存
-            state.trainer.parameter.save(state.parameter.config.parameter_path)
+            runner.parameter.save(runner.rl_config.parameter_path)
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("model", type="model")
-            artifact.add(state.parameter.config.parameter_path)
+            artifact.add(runner.rl_config.parameter_path)
             self._wandb.log_artifact(artifact)
 
-        if state.parameter.config.memory_path != "":
+        if runner.rl_config.memory_path != "":
             # パラメータを保存
-            state.trainer.parameter.save(state.parameter.config.memory_path)
+            runner.memory.save(runner.rl_config.memory_path)
 
             # アーティファクトとして保存
             artifact = wandb.Artifact("memory", type="memory")
-            artifact.add(state.parameter.config.memory_path)
+            artifact.add(runner.rl_config.memory_path)
             self._wandb.log_artifact(artifact)
-
-    def on_runner_end(self, runner: Runner) -> None:
-        super().on_runner_end(runner)
 
         if self._alert:
             self._wandb.alert(
