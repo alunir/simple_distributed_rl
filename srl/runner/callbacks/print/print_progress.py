@@ -205,7 +205,7 @@ class PrintProgress(PrintBase):
             else:
                 s += "[CPU Nan%]"
 
-            if d["GPU"] != np.NaN:
+            if "GPU" in d:
                 s += str(d["GPU"])
             else:
                 s += "[GPU Nan%]"
